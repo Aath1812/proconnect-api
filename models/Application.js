@@ -13,8 +13,15 @@ const ApplicationSchema = new mongoose.Schema(
     applicantName: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     
-    // The path to the uploaded PDF file on the server (We don't store raw PDFs in DB)
+    // Legacy local-disk path used by older deployments.
     filePath: { type: String, default: null },
+
+    // Shared PDF payload for multi-service deployments such as Railway.
+    resumePdf: {
+      data: { type: Buffer, default: null },
+      contentType: { type: String, default: null },
+      originalName: { type: String, default: null }
+    },
     
     // The extracted text from the PDF (Populated by the worker)
     resumeText: { type: String, default: null },

@@ -59,12 +59,20 @@ const worker = new Worker("jobs", async (job) => {
 
     // 2. Extract Text (via PDF or Raw JSON)
     let rawText = appRecord.resumeText;
-    if (appRecord.filePath) {
+    if (appRecord.resumePdf && appRecord.resumePdf.data) {
+      console.log(`[Worker] Extracting text from PDF stored in MongoDB for application ${applicationId}`);
+      const fileBuffer = Buffer.from(appRecord.resumePdf.data);
+      const pdfData = await pdfParse(fileBuffer);
+      rawText = pdfData.text;
+      appRecord.resumeText = rawText; // Cache in DB for debugging
+      appRecord.resumePdf = null; // Drop binary payload after extraction to keep the record lean.
+    } else if (appRecord.filePath) {
       console.log(`[Worker] Extracting text from PDF: ${appRecord.filePath}`);
       const fileBuffer = fs.readFileSync(appRecord.filePath);
       const pdfData = await pdfParse(fileBuffer);
       rawText = pdfData.text;
       appRecord.resumeText = rawText; // Cache in DB for debugging
+      appRecord.filePath = null;
     }
     
     if (!rawText) throw new Error("No text or PDF file provided.");

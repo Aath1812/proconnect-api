@@ -31,9 +31,9 @@ const jobsQueue = new Queue("jobs", {
   connection: { url: process.env.REDIS_URL || "redis://localhost:6379" }
 });
 
-// Configure Multer to stream uploaded PDFs directly to ProConnect's local disk
+// Keep uploads in memory so the worker can read them from MongoDB across services.
 const upload = multer({ 
-  dest: "uploads/",
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
   fileFilter: (req, file, cb) => {
     if (file.mimetype === "application/pdf") cb(null, true);
@@ -145,7 +145,12 @@ app.post("/api/v1/apply", requireAuth, upload.single("resume"), async (req, res)
       applicantName,
       email,
       userId: req.user.sub,
-      filePath: file ? file.path : null,
+      filePath: null,
+      resumePdf: file ? {
+        data: file.buffer,
+        contentType: file.mimetype,
+        originalName: file.originalname
+      } : null,
       resumeText: resumeText || null, // Raw text fallback
       status: "pending"
     });
